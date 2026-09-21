@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.platform     = Gem::Platform::RUBY
   s.authors      = ["Hans Hasselberg"]
   s.email        = ["me@hans.io"]
-  s.homepage     = "https://github.com/typhoeus/ethon"
+  s.homepage     = "https://github.com/kierr/ethon"
   s.summary      = "Libcurl wrapper."
   s.description  = "Very lightweight libcurl wrapper."
 
@@ -28,10 +28,10 @@ Gem::Specification.new do |s|
   s.require_path = 'lib'
 
   s.metadata              = {
-    'bug_tracker_uri'       => 'https://github.com/typhoeus/ethon/issues',
-    'changelog_uri'         => "https://github.com/typhoeus/ethon/blob/v#{s.version}/CHANGELOG.md",
+    'bug_tracker_uri'       => 'https://github.com/kierr/ethon/issues',
+    'changelog_uri'         => "https://github.com/kierr/ethon/blob/v#{s.version}/CHANGELOG.md",
     'documentation_uri'     => "https://www.rubydoc.info/gems/ethon/#{s.version}",
     'rubygems_mfa_required' => 'true',
-    'source_code_uri'       => "https://github.com/typhoeus/ethon/tree/v#{s.version}"
+    'source_code_uri'       => "https://github.com/kierr/ethon/tree/v#{s.version}"
   }
 end

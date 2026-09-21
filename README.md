@@ -1,5 +1,37 @@
-[![Gem Version](https://badge.fury.io/rb/ethon.svg)](https://badge.fury.io/rb/ethon)
-[![Build Status](https://github.com/typhoeus/ethon/workflows/Ruby/badge.svg)](https://github.com/typhoeus/ethon/actions/workflows/ruby.yml)
+# Ethon — kierr fork
+
+> **Upstream:** [typhoeus/ethon](https://github.com/typhoeus/ethon)
+>
+> This fork tracks upstream and rebases regularly. It is maintained for production use.
+
+## Additions
+
+This fork extends upstream ethon with features needed for high-throughput production HTTP workloads:
+
+- **Configurable FFI library** — Set `ETHON_CURL_LIBS` to point to a custom libcurl build (e.g., curl-impersonate). Defaults to Homebrew libcurl, then system libcurl.
+- **HTTP/2 `max_concurrent_streams`** — New `CURLMOPT_MAX_CONCURRENT_STREAMS` multi option for controlling HTTP/2 multiplexing depth.
+- **Corrected enum offsets** — Fixed `CURLINFO` and `CURLOPT` enum values and `off_t` base type that diverged from current libcurl headers.
+- **CURLMOPT modernization** — Added modern multi options (`CURLMOPT_MAX_HOST_CONNECTIONS`, `CURLMOPT_MAX_TOTAL_CONNECTIONS`, `CURLMOPT_MAXCONNECTS`, etc.) with version gating.
+- **Multipart PUT** — `Putable` module detects multipart form data and uses `httppost` + `customrequest='PUT'` instead of upload/read_callback ([upstream PR #245](https://github.com/typhoeus/ethon/pull/245)).
+- **Pinned form actions during perform** — Pins multipart Form actions via `@active_action` during `Easy#perform` to prevent GC use-after-free ([upstream PR #272](https://github.com/typhoeus/ethon/pull/272)).
+- **FFI::AutoPointer GC safety** — Retained `Curl.method(:easy_cleanup)` as a direct method reference (NOT a proc). Wrapping in a proc causes CLOSE_WAIT socket leaks ([issue #194](https://github.com/typhoeus/ethon/issues/194), [PR #136](https://github.com/typhoeus/ethon/pull/136) regression).
+- **Header callback abort** — Header write callback now respects abort, matching body callback behavior.
+- **Replaced pending/skipped tests** — All previously skipped specs now run.
+- **Stale URL fixes** — Updated deprecated curl documentation URLs ([upstream PR #237](https://github.com/typhoeus/ethon/pull/237)).
+- **Sinatra ~> 4.0 pin** — Pinned test server dependency for Rack 3 compatibility.
+
+## Installation
+
+This fork is not published to Rubygems. Install from GitHub:
+
+```ruby
+gem "ethon", github: "kierr/ethon"
+```
+
+**Ruby compatibility:** Tested with Ruby 3.2+. Requires libcurl 7.62.0+ (recommended: latest curl).
+
+---
+
 
 #  Ethon
 

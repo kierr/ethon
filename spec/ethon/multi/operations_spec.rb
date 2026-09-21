@@ -271,11 +271,40 @@ describe Ethon::Multi::Operations do
   end
 
   describe "#check" do
-    it { skip("untested") }
+    context "when a transfer completes" do
+      before do
+        easy.url = "http://localhost:3001/"
+        easy.on_complete { @completed = true }
+        multi.add(easy)
+        multi.perform
+      end
+
+      it "sets the easy return code" do
+        expect(easy.return_code).to eq(:ok)
+      end
+
+      it "removes the easy from easy_handles" do
+        expect(multi.easy_handles).to be_empty
+      end
+
+      it "fires the on_complete callback" do
+        expect(@completed).to be(true)
+      end
+    end
   end
 
   describe "#run" do
-    it { skip("untested") }
+    it "calls trigger then check" do
+      expect(multi).to receive(:trigger).and_return(:ok)
+      expect(multi).to receive(:check)
+      multi.send(:run)
+    end
+
+    it "retries trigger while code is :call_multi_perform" do
+      expect(multi).to receive(:trigger).twice.and_return(:call_multi_perform, :ok)
+      expect(multi).to receive(:check)
+      multi.send(:run)
+    end
   end
 
   describe "#trigger" do

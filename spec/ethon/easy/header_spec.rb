@@ -55,6 +55,18 @@ describe Ethon::Easy::Header do
       expect(easy.compose_header('a', 'b')).to eq('a: b')
     end
 
+    context "when key ends with semicolon and value is empty" do
+      it "omits the colon-space separator" do
+        expect(easy.compose_header('Accept;', '')).to eq('Accept;')
+      end
+    end
+
+    context "when key ends with semicolon and value is present" do
+      it "includes the colon-space separator" do
+        expect(easy.compose_header('Accept;', 'value')).to eq('Accept;: value')
+      end
+    end
+
     context "when value is a symbol" do
       it "works" do
         expect{ easy.compose_header('a', :b) }.to_not raise_error

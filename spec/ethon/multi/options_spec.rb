@@ -5,8 +5,11 @@ describe Ethon::Multi::Options do
   let(:multi) { Ethon::Multi.new }
 
   [
-    :maxconnects, :pipelining, :socketdata, :socketfunction,
-    :timerdata, :timerfunction, :max_total_connections
+    :maxconnects, :socketdata, :socketfunction,
+    :timerdata, :timerfunction, :max_total_connections,
+    :max_concurrent_streams, :max_host_connections,
+    :network_changed, :resolve_threads_max, :quick_exit,
+    :notifyfunction
   ].each do |name|
     describe "#{name}=" do
       it "responds_to" do
@@ -16,6 +19,16 @@ describe Ethon::Multi::Options do
       it "sets option" do
         expect(Ethon::Curl).to receive(:set_option).with(name, anything, anything, anything)
         multi.method("#{name}=").call(1)
+      end
+    end
+  end
+
+  describe "deprecated pipeline options" do
+    [:pipelining, :max_pipeline_length, :content_length_penalty_size,
+     :chunk_length_penalty_size, :pipelining_site_bl, :pipelining_server_bl].each do |name|
+      it "#{name} raises DeprecatedOption" do
+        expect { Ethon::Curl.set_option(name, 1, multi.handle, :multi) }
+          .to raise_error(Ethon::Errors::DeprecatedOption)
       end
     end
   end
@@ -34,7 +47,12 @@ describe Ethon::Multi::Options do
         easy = Ethon::Easy.new
         easy.url = "http://localhost:3001/?delay=1"
         multi.add(easy)
-        expect(calls).to eq([])
+        # RATIONALE: curl >= 8.20.0 fires socketfunction immediately on
+        # multi_add_handle (typhoeus/ethon#273). The empty-array assertion
+        # was valid for older curl but no longer holds. Accept either state.
+        unless calls.empty?
+          expect(calls.last).to eq(:in).or(eq(:out))
+        end
         5.times do
           multi.socket_action
           break unless calls.empty?
@@ -74,15 +92,22 @@ describe Ethon::Multi::Options do
 
         easy = Ethon::Easy.new
         easy.url = "http://localhost:3001/?delay=1"
-        multi.add(easy)
+        # RATIONALE: curl >= 8.20.0 fires socketfunction during
+        # multi_add_handle (typhoeus/ethon#273), so the ArgumentError
+        # may surface on add rather than on socket_action. Accept both.
         expect {
+          multi.add(easy)
           5.times do
             multi.socket_action
             break if called
             sleep 0.1
           end
         }.to raise_error(ArgumentError)
-        expect { multi.delete(easy) }.to raise_error(ArgumentError)
+        # RATIONALE: curl >= 8.20.0 does not re-raise during delete after
+        # the error was already consumed during add/socket_action.
+        unless Ethon::Curl.curl_version_gte?("8.20.0")
+          expect { multi.delete(easy) }.to raise_error(ArgumentError)
+        end
       end
     end
 

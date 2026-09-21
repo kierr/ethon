@@ -17,9 +17,7 @@ module Ethon
           easy.url ||= url
           form.params_encoding = params_encoding
           if form.multipart?
-            form.escape = false
-            form.materialize
-            easy.httppost = form.first.read_pointer
+            setup_multipart(easy, form)
           else
             form.escape = easy.escape?
             easy.postfieldsize = form.to_s.bytesize

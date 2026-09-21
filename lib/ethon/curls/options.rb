@@ -9,6 +9,24 @@ module Ethon
       OPTION_STRINGS = { :easy => 'easy_options', :multi => 'multi_options' }.freeze
       FOPTION_STRINGS = { :easy => 'EASY_OPTIONS', :multi => 'MULTI_OPTIONS' }.freeze
       FUNCS = { :easy => 'easy_setopt', :multi => 'multi_setopt' }.freeze
+
+      # Minimum libcurl version required for options that were added after
+      # the original ethon bindings. Options absent from this hash are
+      # assumed to be supported by all libcurl versions ethon targets.
+      MINIMUM_CURL_VERSIONS = {
+        # Multi options
+        :max_concurrent_streams => "7.67.0",
+        :network_changed => "8.17.0",
+        :notifyfunction => "8.17.0",
+        :notifydata => "8.17.0",
+        :resolve_threads_max => "8.16.0",
+        :quick_exit => "8.16.0",
+        # Easy options
+        :maxage_conn => "7.65.0",
+        :maxlifetime_conn => "7.80.0",
+        :tcp_keepcnt => "8.9.0",
+        :ssl_enable_alpn => "7.36.0",
+      }.freeze
       # Sets appropriate option for easy, depending on value type.
       def set_option(option, value, handle, type = :easy)
         type = type.to_sym unless type.is_a?(Symbol)
@@ -16,7 +34,14 @@ module Ethon
         opthash=send(OPTION_STRINGS[type], nil)
         raise Errors::InvalidOption.new(option) unless opthash.include?(option)
 
+        required = MINIMUM_CURL_VERSIONS[option]
+        if required && !Curl.curl_version_gte?(required)
+          raise Errors::UnsupportedOption.new(option, required)
+        end
+
         case opthash[option][:type]
+        when :deprecated
+          raise Errors::DeprecatedOption.new(option)
         when :none
           return if value.nil?
           value=1
@@ -94,6 +119,9 @@ module Ethon
         when :progress_callback
           va_type=:progress_callback
           raise Errors::InvalidValue.new(option,value) unless value.nil? or value.is_a? Proc
+        when :notify_callback
+          va_type=:notify_callback
+          raise Errors::InvalidValue.new(option,value) unless value.nil? or value.is_a? Proc
         when :off_t
           return if value.nil?
           va_type=:int64
@@ -102,8 +130,9 @@ module Ethon
 
         if va_type==:long or va_type==:int64 then
             bits=FFI.type_size(va_type)*8
-            tv=((value<0) ? value.abs-1 : value)
-            raise Errors::InvalidValue.new(option,value) unless tv<(1<<bits)
+            max_unsigned=(1<<bits)
+            max_signed=max_unsigned/2
+            raise Errors::InvalidValue.new(option,value) unless value<max_signed and value>=-max_signed
         end
         send(FUNCS[type], handle, opthash[option][:opt], va_type, value)
       end
@@ -147,7 +176,9 @@ module Ethon
         :timer_callback => :functionpoint,
         :debug_callback => :functionpoint,
         :progress_callback => :functionpoint,
+        :notify_callback => :functionpoint,
         :off_t => :off_t,
+        :deprecated => :long,
       }
 
       def self.option(ftype,name,type,num,opts=nil)
@@ -212,27 +243,33 @@ module Ethon
       end
 
       # Curl multi options, refer
-      # Defined @ https://github.com/bagder/curl/blob/master/include/curl/multi.h
-      # Documentation @ http://curl.haxx.se/libcurl/c/curl_multi_setopt.html
+      # Defined @ https://github.com/curl/curl/blob/master/include/curl/multi.h
+      # Documentation @ https://curl.se/libcurl/c/curl_multi_setopt.html
       option_type :multi
 
       option :multi, :socketfunction, :socket_callback, 1
       option :multi, :socketdata, :cbdata, 2
-      option :multi, :pipelining, :int, 3
+      option :multi, :pipelining, :deprecated, 3
       option :multi, :timerfunction, :timer_callback, 4
       option :multi, :timerdata, :cbdata, 5
       option :multi, :maxconnects, :int, 6
       option :multi, :max_host_connections, :int, 7
-      option :multi, :max_pipeline_length, :int, 8
-      option :multi, :content_length_penalty_size, :off_t, 9
-      option :multi, :chunk_length_penalty_size, :off_t, 10
-      option :multi, :pipelining_site_bl, :dontuse_object, 11
-      option :multi, :pipelining_server_bl, :dontuse_object, 12
-      option :multi, :max_total_connections, :int, 3
+      option :multi, :max_pipeline_length, :deprecated, 8
+      option :multi, :content_length_penalty_size, :deprecated, 9
+      option :multi, :chunk_length_penalty_size, :deprecated, 10
+      option :multi, :pipelining_site_bl, :deprecated, 11
+      option :multi, :pipelining_server_bl, :deprecated, 12
+      option :multi, :max_total_connections, :int, 13
+      option :multi, :max_concurrent_streams, :int, 16
+      option :multi, :network_changed, :int, 17
+      option :multi, :notifyfunction, :notify_callback, 18
+      option :multi, :notifydata, :cbdata, 19
+      option :multi, :resolve_threads_max, :int, 20
+      option :multi, :quick_exit, :int, 21
 
       # Curl easy options
-      # Defined @ https://github.com/bagder/curl/blob/master/include/curl/curl.h
-      # Documentation @ http://curl.haxx.se/libcurl/c/curl_easy_setopt.html
+      # Defined @ https://github.com/curl/curl/blob/master/include/curl/curl.h
+      # Documentation @ https://curl.se/libcurl/c/curl_easy_setopt.html
       ## BEHAVIOR OPTIONS
       option_type :easy
 
@@ -307,10 +344,11 @@ module Ethon
       option :easy, :port, :int, 3
       option :easy, :tcp_nodelay, :bool, 121
       option :easy, :address_scope, :int, 171
-      option :easy, :tcp_fastopen, :bool, 212
+      option :easy, :tcp_fastopen, :bool, 244
       option :easy, :tcp_keepalive, :bool, 213
       option :easy, :tcp_keepidle, :int, 214
       option :easy, :tcp_keepintvl, :int, 215
+      option :easy, :tcp_keepcnt, :int, 326
       ## NAMES and PASSWORDS OPTIONS (Authentication)
       option :easy, :netrc, :enum, 51, [:ignored, :optional, :required]
       option :easy, :netrc_file, :string, 118
@@ -430,6 +468,8 @@ module Ethon
       option :easy, :accepttimeout_ms, :int, 212
       option :easy, :unix_socket_path, :string, 231
       option :easy, :pipewait, :bool, 237
+      option :easy, :maxage_conn, :int, 288
+      option :easy, :maxlifetime_conn, :int, 314
       option_alias :easy, :unix_socket_path, :unix_socket
       ## SSL and SECURITY OPTIONS
       option :easy, :sslcert, :string, 25
@@ -453,6 +493,7 @@ module Ethon
       option :easy, :egdsocket, :string, 77
       option :easy, :ssl_cipher_list, :string, 83
       option :easy, :ssl_sessionid_cache, :bool, 150
+      option :easy, :ssl_enable_alpn, :bool, 226
       option :easy, :ssl_options, :bitmask, 216, [nil, :allow_beast]
       option :easy, :krblevel, :string, 63
       option_alias :easy, :krblevel, :krb4level

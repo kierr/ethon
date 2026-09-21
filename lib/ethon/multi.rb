@@ -25,13 +25,6 @@ module Ethon
     #  curl_socket_callback's forth argument, the userp pointer. This is not
     #  used by libcurl but only passed-thru as-is. Set the callback pointer
     #  with CURLMOPT_SOCKETFUNCTION.
-    # @option options :pipelining [Boolean]
-    #  Pass a long set to 1 to enable or 0 to disable. Enabling pipelining
-    #  on a multi handle will make it attempt to perform HTTP Pipelining as
-    #  far as possible for transfers using this handle. This means that if
-    #  you add a second request that can use an already existing connection,
-    #  the second request will be "piped" on the same connection rather than
-    #  being executed in parallel. (Added in 7.16.0)
     # @option options :timerfunction [Proc]
     #  Pass a pointer to a function matching the curl_multi_timer_callback
     #  prototype. This function will then be called when the timeout value
@@ -110,6 +103,31 @@ module Ethon
         end
         method("#{key}=").call(value)
       end
+    end
+
+    # curl_multi_get_offt parameter constants (CURLMINFO_XFERS_*, curl >= 8.16.0).
+    XFER_INFO_PARAMS = {
+      xfers_current: 1,
+      xfers_running: 2,
+      xfers_pending: 3,
+      xfers_done: 4,
+      xfers_added: 5,
+    }.freeze
+
+    # Return transfer counters from the multi handle via curl_multi_get_offt.
+    # Requires libcurl >= 8.16.0. Returns an empty hash when the function
+    # is unavailable or returns an error.
+    #
+    # @return [ Hash{Symbol => Integer} ]
+    def xfer_info
+      result = {}
+      ptr = FFI::MemoryPointer.new(:int64)
+      XFER_INFO_PARAMS.each do |name, param|
+        if Curl.multi_get_offt(handle, param, ptr) == :ok
+          result[name] = ptr.read_int64
+        end
+      end
+      result
     end
 
     private

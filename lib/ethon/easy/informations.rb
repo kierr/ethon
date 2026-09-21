@@ -3,7 +3,7 @@ module Ethon
   class Easy
 
     # This module contains the methods to return informations
-    # from the easy handle. See http://curl.haxx.se/libcurl/c/curl_easy_getinfo.html
+    # from the easy handle. See https://curl.se/libcurl/c/curl_easy_getinfo.html
     # for more information.
     module Informations
 
@@ -92,7 +92,38 @@ module Ethon
 
         # Return the bytes/second, the average download speed that curl
         # measured for the complete download
-        :speed_download => :double
+        :speed_download => :double,
+
+        # Microseconds a transfer sat queued before starting (curl >= 8.6.0).
+        :queue_time => :off_t,
+
+        # Internal connection ID for correlating requests sharing a connection (curl >= 8.2.0).
+        :conn_id => :off_t,
+
+        # Internal transfer ID, unique per-request (curl >= 8.2.0).
+        :xfer_id => :off_t,
+
+        # Whether the transfer used a proxy (curl >= 8.7.0).
+        :used_proxy => :long,
+
+        # Detailed proxy error code (curl >= 8.7.0).
+        :proxy_error => :long,
+
+        # Time from start to last byte sent, in microseconds (curl >= 8.10.0).
+        :posttransfer_time => :off_t,
+
+        # Bytes passed to the write callback — differs from size_download when
+        # content-encoding is applied (curl >= 8.20.0).
+        :size_delivered => :off_t,
+
+        # Auth method negotiated for proxy (curl >= 8.12.0).
+        :proxyauth_used => :long,
+
+        # Auth method negotiated for server (curl >= 8.12.0).
+        :httpauth_used => :long,
+
+        # TLS 1.3 early data bytes sent (curl >= 8.13.0).
+        :earlydata_sent => :off_t
       }
 
       AVAILABLE_INFORMATIONS.each do |name, type|

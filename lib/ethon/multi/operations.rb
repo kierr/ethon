@@ -14,6 +14,10 @@ module Ethon
       #
       # @return [ FFI::Pointer ] The multi handle.
       def handle
+        # RATIONALE: Curl.method(:multi_cleanup), not a proc — same GC-finalization
+        # constraint as easy/operations.rb:17. See there for the PR #136/#194/#207
+        # history. Multi handles are longer-lived and not typically pooled under
+        # GC pressure the way Easy handles are, so the risk is lower.
         @handle ||= FFI::AutoPointer.new(Curl.multi_init, Curl.method(:multi_cleanup))
       end
 

@@ -11,6 +11,12 @@ module Ethon
       #
       # @return [ FFI::Pointer ] A pointer to the curl easy handle.
       def handle
+        # RATIONALE: Curl.method(:easy_cleanup) — NOT a proc. PR #136 replaced
+        # this with a proc { |ptr| Curl.easy_cleanup(ptr) }, but was reverted
+        # (issue #194) because FFI::AutoPointer GC finalization does not
+        # reliably execute proc bodies — curl_easy_cleanup was never called,
+        # leaving sockets in CLOSE_WAIT. PR #207 re-proposes the same change
+        # without addressing the regression. Do NOT wrap in a proc.
         @handle ||= FFI::AutoPointer.new(Curl.easy_init, Curl.method(:easy_cleanup))
       end
 
@@ -32,6 +38,9 @@ module Ethon
           Ethon.logger.debug { "ETHON: performed #{log_inspect}" }
         end
         complete
+        # Release the pinned Form now that perform has returned and libcurl
+        # is no longer referencing the curl_httppost chain.
+        @active_action = nil
         @return_code
       end
 

@@ -136,6 +136,17 @@ module Ethon
         def set_form(easy)
         end
 
+        # Configure multipart form on the easy handle.
+        # Shared by Postable and Putable for multipart setup.
+        #
+        # @param [ Easy ] easy The easy to setup.
+        # @param [ Form ] form The form to configure.
+        def setup_multipart(easy, form)
+          form.escape = false
+          form.materialize
+          easy.httppost = form.first.read_pointer
+        end
+
         private
 
         def parse_options(options)

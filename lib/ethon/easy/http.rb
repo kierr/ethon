@@ -37,7 +37,14 @@ module Ethon
       #
       # @see Ethon::Easy::Options
       def http_request(url, action_name, options = {})
-        fabricate(url, action_name, options).setup(self)
+        action = fabricate(url, action_name, options)
+        # RATIONALE: multipart GC safety (typhoeus/ethon#272) — pin the action
+        # for the duration of perform. Form holds an FFI::AutoPointer to
+        # curl_formfree; easy_perform releases the GVL, so an unpinned Form
+        # can be finalized mid-transfer, freeing the curl_httppost chain while
+        # libcurl is still reading it.
+        @active_action = action
+        action.setup(self)
       end
 
       private

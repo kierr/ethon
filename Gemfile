@@ -10,7 +10,7 @@ group :development, :test do
   if Gem.ruby_version < Gem::Version.new("3.0.0")
     gem "sinatra", "~> 2.2"
   else
-    gem "sinatra"
+    gem "sinatra", "~> 4.0"
   end
   
   gem "rackup"

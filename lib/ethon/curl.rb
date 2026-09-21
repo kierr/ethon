@@ -35,6 +35,30 @@ module Ethon
     @@curl_mutex = Mutex.new
 
     class << self
+      # Return the libcurl version string (e.g. "8.20.0").
+      def curl_version_string
+        version[/\Alibcurl\/([\d.]+)/, 1] || "0.0.0"
+      end
+
+      # Check whether the linked libcurl meets a minimum version requirement.
+      #
+      # @param [ String ] required Minimum version (e.g. "8.6.0").
+      # @return [ Boolean ]
+      def curl_version_gte?(required)
+        Gem::Version.new(curl_version_string) >= Gem::Version.new(required)
+      end
+
+      # Check whether a named option is supported by the current libcurl.
+      # Options not listed in MINIMUM_CURL_VERSIONS are always considered supported.
+      #
+      # @param [ Symbol ] option Option name.
+      # @return [ Boolean ]
+      def supports?(option)
+        min = Ethon::Curls::Options::MINIMUM_CURL_VERSIONS[option]
+        return true unless min
+        curl_version_gte?(min)
+      end
+
       # This function sets up the program environment that libcurl needs.
       # Think of it as an extension of the library loader.
       #

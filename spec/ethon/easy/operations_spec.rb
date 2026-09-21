@@ -192,8 +192,14 @@ describe Ethon::Easy::Operations do
         context "when user_pwd" do
           let(:user_pwd) { "username:password" }
 
-          it "returns 200" do
-            expect(easy.response_code).to eq(200)
+          if Ethon::Curl.version.include?("NTLM")
+            it "returns 200" do
+              expect(easy.response_code).to eq(200)
+            end
+          else
+            it "returns 401 when NTLM is not compiled in" do
+              expect(easy.response_code).to eq(401)
+            end
           end
         end
       end

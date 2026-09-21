@@ -38,6 +38,17 @@ module Ethon
         base.attach_function :multi_setopt,               :curl_multi_setopt,        [:pointer, :multi_option, :varargs], :multi_code
         base.attach_function :multi_socket_action,        :curl_multi_socket_action, [:pointer, :int, :socket_readiness, :pointer], :multi_code
 
+        begin
+          base.attach_function :multi_get_offt, :curl_multi_get_offt,
+            [:pointer, :int, :pointer], :multi_code
+        rescue FFI::NotFoundError
+          # RATIONALE: curl_multi_get_offt requires curl >= 8.16.0. On older
+          # curl the symbol is absent. xfer_info returns an empty hash.
+          def base.multi_get_offt(*)
+            :unsupported_function
+          end
+        end
+
         base.attach_function :version,                    :curl_version,             [],                             :string
         base.attach_function :version_info,               :curl_version_info,        [],                             Curl::VersionInfoData.ptr
 

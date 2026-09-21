@@ -6,3 +6,10 @@ Gemfile.lock
 doc
 coverage
 .idea
+
+# Agent state
+.agents/
+.pi/
+.claude/
+.planning/
+.codex/

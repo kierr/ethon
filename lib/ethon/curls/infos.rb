@@ -17,12 +17,13 @@ module Ethon
           :string =>0x100000,
           :long =>  0x200000,
           :double =>0x300000,
-          :slist => 0x400000
+          :slist => 0x400000,
+          :off_t => 0x600000
         }
       end
 
-      # http://curl.haxx.se/libcurl/c/curl_easy_setopt.html#CURLOPTDEBUGFUNCTION
-      # https://github.com/bagder/curl/blob/master/include/curl/curl.h#L378
+      # https://curl.se/libcurl/c/curl_easy_setopt.html#CURLOPTDEBUGFUNCTION
+      # https://github.com/curl/curl/blob/master/include/curl/curl.h#L378
       #
       # @example Return debug info types.
       #   Ethon::Curl.debug_info_types
@@ -41,7 +42,7 @@ module Ethon
       end
 
       # Return Info details, refer
-      # https://github.com/bagder/curl/blob/master/src/tool_writeout.c#L66 for details
+      # https://github.com/curl/curl/blob/master/src/tool_writeout.c#L66 for details
       #
       # @example Return infos.
       #   Ethon::Curl.infos
@@ -91,7 +92,17 @@ module Ethon
           :primary_port =>           info_types[:long]   + 40,
           :local_ip =>               info_types[:string] + 41,
           :local_port =>             info_types[:long]   + 42,
-          :last =>42
+          :proxy_error =>            info_types[:long]   + 0x3b,
+          :xfer_id =>                info_types[:off_t]  + 0x3f,
+          :conn_id =>                info_types[:off_t]  + 0x40,
+          :queue_time =>             info_types[:off_t]  + 0x41,
+          :used_proxy =>             info_types[:long]   + 0x42,
+          :posttransfer_time =>      info_types[:off_t]  + 0x43,
+          :earlydata_sent =>         info_types[:off_t]  + 0x44,
+          :httpauth_used =>          info_types[:long]   + 0x45,
+          :proxyauth_used =>         info_types[:long]   + 0x46,
+          :size_delivered =>         info_types[:off_t]  + 0x47,
+          :last => info_types[:off_t] + 73
         }
       end
 
@@ -146,6 +157,27 @@ module Ethon
           double_ptr.read_double
         end
       end
+
+      # Return info as 64-bit integer (curl_off_t).
+      #
+      # @example Return info.
+      #   Curl.get_info_offt(:queue_time, easy)
+      #
+      # @param [ Symbol ] option The option name.
+      # @param [ ::FFI::Pointer ] handle The easy handle.
+      #
+      # @return [ Integer ] The info.
+      def get_info_offt(option, handle)
+        int64_ptr = ::FFI::MemoryPointer.new(:int64)
+
+        if easy_getinfo(handle, option, :pointer, int64_ptr) == :ok
+          int64_ptr.read_int64
+        end
+      end
+
+      # Alias matching the symbol name used in AVAILABLE_INFORMATIONS.
+      # The eval loop generates Curl.send(:get_info_off_t, ...) from the :off_t key.
+      alias_method :get_info_off_t, :get_info_offt
     end
   end
 end

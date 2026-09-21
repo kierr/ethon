@@ -100,6 +100,10 @@ module Ethon
         # to. So this results in (pseudo-c):
         #   form_data_cleanup_handler = *first
         #   curl_form_free(form_data_cleanup_handler)
+        # RATIONALE: Curl.method(:formfree), not a proc — same GC-finalization
+        # constraint as easy/operations.rb:17. See operations.rb for the PR
+        # #136/#194/#207 history. This AutoPointer is safe because the Form
+        # is pinned via @active_action during perform (typhoeus/ethon#272).
         @form_data_cleanup_handler ||= FFI::AutoPointer.new(@first.get_pointer(0), Curl.method(:formfree))
       end
     end

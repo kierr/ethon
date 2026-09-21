@@ -8,6 +8,8 @@ require 'ethon/errors/multi_remove'
 require 'ethon/errors/select'
 require 'ethon/errors/invalid_option'
 require 'ethon/errors/invalid_value'
+require 'ethon/errors/deprecated_option'
+require 'ethon/errors/unsupported_option'
 
 module Ethon
 
