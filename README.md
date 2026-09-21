@@ -8,6 +8,8 @@
 
 This fork extends upstream ethon with features needed for high-throughput production HTTP workloads:
 
+- **Used by [kierr/typhoeus](https://github.com/kierr/typhoeus)** — the companion fork that layers parallel-request semantics, multi handle pooling, and transfer metrics on top of Ethon's Easy/Multi interfaces.
+
 - **Configurable FFI library** — Set `ETHON_CURL_LIBS` to point to a custom libcurl build (e.g., curl-impersonate). Defaults to Homebrew libcurl, then system libcurl.
 - **HTTP/2 `max_concurrent_streams`** — New `CURLMOPT_MAX_CONCURRENT_STREAMS` multi option for controlling HTTP/2 multiplexing depth.
 - **Corrected enum offsets** — Fixed `CURLINFO` and `CURLOPT` enum values and `off_t` base type that diverged from current libcurl headers.
